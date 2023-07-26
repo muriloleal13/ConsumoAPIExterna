@@ -56,11 +56,6 @@ app.use((req, res, next) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
- *                 description: Token de autenticação para acessar a API externa
- *                 example:
- *                   '56ht9p-Li8k5zHaQ2Dzxzijr...'
  *               params:
  *                 type: object
  *                 properties:
@@ -138,11 +133,6 @@ app.post('/api/getUserData', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
- *                 description: Token de autenticação para acessar a API externa
- *                 example:
- *                   '56ht9p-Li8k5zHaQ2Dzxzijr...'
  *               params:
  *                 type: object
  *                 properties:
@@ -185,7 +175,7 @@ app.post('/api/fetchAllRepo', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/getRepositoriosDoUsuario', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/getRepositoriosDoUsuario', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
@@ -301,7 +291,7 @@ app.post('/api/createRepo', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/inserirRepositorio', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/inserirRepositorio', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
@@ -326,9 +316,6 @@ app.post('/api/createRepo', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
- *                 description: Token de autenticação para acessar a API externa
  *               params:
  *                 type: object
  *                 properties:
@@ -551,7 +538,7 @@ app.post('/api/createEnvelope', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/inserirEnvelope', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/inserirEnvelope', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
@@ -576,8 +563,6 @@ app.post('/api/createEnvelope', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
  *               params:
  *                 type: object
  *                 properties:
@@ -591,7 +576,6 @@ app.post('/api/createEnvelope', async (req, res) => {
  *               - idEnvelope
  *               - getLobs
  *           example:
- *             token: "56ht9p-Li8k5zHaQ2Dzxzijr..."
  *             params:
  *               idEnvelope: 1951
  *               getLobs: "N"
@@ -620,7 +604,7 @@ app.post('/api/getEnvelopeData', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/getDadosEnvelope', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/getDadosEnvelope', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
@@ -645,8 +629,6 @@ app.post('/api/getEnvelopeData', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
  *               params:
  *                 type: object
  *                 properties:
@@ -655,10 +637,8 @@ app.post('/api/getEnvelopeData', async (req, res) => {
  *                 required:
  *                   - idRepositorio
  *             required:
- *               - token
  *               - params
  *           example:
- *             token: "56ht9p-Li8k5zHaQ2Dzxzijr..."
  *             params:
  *               idRepositorio: 281
  *     responses:
@@ -686,7 +666,7 @@ app.post('/api/fetchEnvelopesRepo', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/getEnvelopesByRepositorioOuPasta', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/getEnvelopesByRepositorioOuPasta', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
@@ -711,9 +691,6 @@ app.post('/api/fetchEnvelopesRepo', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
- *                 description: Token de autenticação
  *               params:
  *                 type: object
  *                 properties:
@@ -761,7 +738,7 @@ app.post('/api/sendEnvelope', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/encaminharEnvelopeParaAssinaturas', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/encaminharEnvelopeParaAssinaturas', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
@@ -786,8 +763,6 @@ app.post('/api/sendEnvelope', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               token:
- *                 type: string
  *               params:
  *                 type: object
  *                 properties:
@@ -804,7 +779,6 @@ app.post('/api/sendEnvelope', async (req, res) => {
  *               - hashSHA256
  *               - incluirDocs
  *           example:
- *             token: "56ht9p-Li8k5zHaQ2Dzxzijr..."
  *             params:
  *               hashSHA256: "125bc811ff75103031ab20c06484924f1b317ae95748481cd790509b24e01d5d"
  *               incluirDocs: "N"
@@ -834,7 +808,7 @@ app.post('/api/downloadPDF', async (req, res) => {
   try {
     const { params } = req.body;
 
-    const response = await axios.post(process.env.API_URL + '/downloadPDFEnvelope', { "token": process.env.TOKEN, "params": params }, {
+    const response = await axios.post(process.env.API_URL + '/downloadPDFEnvelope', { token: process.env.TOKEN, params: params }, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
