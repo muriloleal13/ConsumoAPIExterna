@@ -1,20 +1,30 @@
 <template>
   <div class="container">
+    <div v-if="this.isLoading" class="info-container">
+      <div class="loading"></div>
+      <span style="padding: 5px;">Carregando...</span>
+    </div>
+
+    <div v-if="this.isSuccess" class="info-container" style="background-color: rgb(120, 255, 120);">
+      <font-awesome-icon icon="check" />
+      <span style="padding: 5px;">{{ this.successMessage }}</span>
+    </div>
+
+    <div v-if="this.isError" class="info-container" style="background-color: rgb(255, 116, 116);">
+      <font-awesome-icon icon="xmark"/>
+      <span style="padding: 5px;">{{ this.errorMessage }}</span>
+    </div>
+
     <!-- Coluna Única -->
     <div class="main-column">
       <h1>Consumo de API AVMB</h1>
 
-      <!-- <div class="input-container">
-        <input v-if="userId" type="text" v-model="userId" placeholder="Insira o ID do Usuário">
-      </div> -->
-
       <div class="button-container">
-        <button @click="getUserId">Buscar Identificador do Usuário</button>
+        <button @click="getUserId"><font-awesome-icon icon="user"/>Identificador do Usuário</button>
         <!-- <button v-if="userId" @click="getUserData">Buscar Dados do Usuário</button> -->
-        <!-- <button v-if="userId" @click="fetchAllRepo">Buscar Repositórios do Usuário</button> -->
         <!-- <button v-if="userId" @click="isModalOpen = true">Criar Repositório</button> -->
-        <button v-if="userId" @click="openCreateEnvelopeModal">Criar Envelope</button>
-        <button v-if="lstEnvelopes.length" @click="openEncaminhaEnvelopeModal">Encaminhar Envelope</button>
+        <button v-if="userId" @click="openCreateEnvelopeModal"><font-awesome-icon icon="envelope" />Criar Envelope</button>
+        <button v-if="lstEnvelopes.length && lstEnvelopes.filter(env => env.status == 1).length" @click="openEncaminhaEnvelopeModal"><font-awesome-icon icon="share-from-square"/>Encaminhar Envelope</button>
       </div>
 
       <div>
@@ -35,7 +45,7 @@
             {{ repo.nome }}
           </option>
         </select>
-        <button @click="fetchEnvelopesRepo" :disabled="!selectedRepo" class="btn-adicionar">Buscar envelopes</button>
+        <button @click="fetchEnvelopesRepo" :disabled="!selectedRepo" class="btn-adicionar"><font-awesome-icon icon="magnifying-glass"/>Buscar envelopes</button>
       </div>
       <div v-if="lstEnvelopes.length > 0">
         <h2>Envelopes:</h2>
@@ -46,6 +56,7 @@
               <th>Descrição</th>
               <th>Data e Hora de Criação</th>
               <th>Status do Envelope</th>
+              <th>Download</th>
             </tr>
           </thead>
           <tbody>
@@ -54,9 +65,14 @@
               <td>{{ envelope.descricao }}</td>
               <td>{{ envelope.dataHoraCriacao }}</td>
               <td>{{ getStatusDescription(envelope.status) }}</td>
+              <td v-if="envelope.status == 3" style="text-align: center;" @click="this.buscarEnvelopePorId(envelope.id)"><font-awesome-icon icon="download" /></td>
+              <td v-else style="text-align: center;">-</td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-else>
+        <p style="text-align: center;">Nenhum envelope encontrado no repositório ou pasta</p>
       </div>
     </div>
 
@@ -75,13 +91,12 @@
       </div>
     </Teleport> -->
     <CustomModal
-      :is-open="isModalOpen"
+      :is-open="this.isModalOpen"
       :title="modalTitle"
       @confirm="onModalConfirm"
       @cancel="onModalCancel"
     >
       <div v-if="isCreateEnvelopeModal">
-        <!-- <p>ID do Usuário: {{ userId }}</p> -->
         <div class="input-container">
           <input type="text" v-model="descricao" placeholder="Descrição do envelope" class="input-field">
           <select v-model="selectedRepo" class="custom-select" style="width: 100%;">
@@ -93,10 +108,12 @@
         </div>
 
         <div class="add-document-container">
-          <input type="file" @change="onFileChange">
-          <button @click="addDocument" :disabled="!selectedFile" class="btn-adicionar">Adicionar Documento</button>
+          <div class="input-container">
+            <input type="file" @change="onFileChange">
+            <button @click="addDocument" :disabled="!selectedFile" class="btn-adicionar">Adicionar Documento</button>
+          </div>
           <ul>
-            <li v-for="(document, index) in documents" :key="index">
+            <li v-for="(document, index) in documents" :key="index" style="padding: 5px;">
               {{ document.nomeArquivo }}
               <button @click="removeDocument(index)" class="btn-remover">Remover</button>
             </li>
@@ -123,7 +140,7 @@
         <div class="input-container">
           <select v-model="selectedEnvelope" class="custom-select" style="width: 100%;">
             <option value="">Selecione um envelope</option>
-            <option v-for="envelope in lstEnvelopes" :key="envelope.id" :value="envelope.id">
+            <option v-for="envelope in lstEnvelopes.filter(env => env.status == 1)" :key="envelope.id" :value="envelope.id">
               {{ envelope.descricao }}
             </option>
           </select>
@@ -158,8 +175,7 @@ h1, h2 {
   margin-top: 0;
 }
 
-.input-container,
-.add-document-container {
+.input-container {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
@@ -196,10 +212,45 @@ button {
   background-color: #6c63ff;
   color: white;
   cursor: pointer;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
 }
 
 button:hover {
   background-color: #544dc9;
+}
+
+/* CSS para o efeito de carregamento */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.info-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 50px;
+  background-color: rgba(69, 69, 69, 0.3);
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.loading {
+  width: 30px;
+  height: 30px;
+  border: 4px solid rgba(0, 0, 0, 0.3);
+  border-top: 4px solid #007bff; /* Cor do spinner */
+  border-radius: 50%;
+  animation: spin 1s linear infinite; /* Aplica o efeito de rotação */
+}
+
+.loading span {
+  margin-left: 10px;
+  vertical-align: middle;
 }
 
 table {
@@ -214,7 +265,6 @@ td {
   padding: 8px;
   text-align: left;
 }
-
 
 .response-container {
   margin-top: 20px;
@@ -246,11 +296,6 @@ textarea.json-textarea {
   cursor: pointer;
 }
 
-.signatarios-container {
-  /* max-height: 200px; /* Altura máxima da div principal */
-  /* overflow-y: auto; Adiciona a barra de rolagem quando o conteúdo exceder o espaço disponível */
-}
-
 .signatario {
   display: flex;
   align-items: center;
@@ -277,11 +322,14 @@ textarea.json-textarea {
   background-color: red;
 }
 
-.btn-confirm {
-  background-color: green;
+.btn-remover:hover{
+  background-color: rgb(183, 0, 0);
 }
 
-.btn-remover:hover,
+.btn-confirm {
+  background-color: rgb(120, 255, 120);
+}
+
 .btn-adicionar:hover {
   background-color: #544dc9;
 }
@@ -290,13 +338,19 @@ textarea.json-textarea {
 <script>
 import axios from 'axios';
 import CustomModal from './components/CustomModal.vue';
+import { db } from './main';
 
 export default {
   data() {
     return {
       userId: null,
       userData: null,
+      isLoading: false,
+      isSuccess: false,
+      isError: false,
       isModalOpen: false,
+      successMessage: '',
+      errorMessage: '',
       modalTitle: '',
       isCreateEnvelopeModal: false,
       isEncaminhaEnvelopeModal: false,
@@ -318,7 +372,6 @@ export default {
   },
   computed: {
     // Mapear os valores de status para suas descrições correspondentes
-    // UNUSED
     statusDescriptions() {
       return {
         1: 'Em construção',
@@ -332,6 +385,7 @@ export default {
   },
   methods: {
     async getUserId() {
+      this.isLoading = true;
       try {
         // Chamar a API para buscar o identificador do usuário
         const response = await axios.post(`http://localhost:3000/api/getUserId`, { params: {} }, {
@@ -345,7 +399,10 @@ export default {
         await this.fetchAllRepo();
         // await this.getUserData();
       } catch (error) {
+        this.showErrorMessage(error);
         console.error('Erro ao buscar o identificador do usuário:', error);
+      }finally{
+        this.isLoading = false;
       }
     },
     async getUserData() {
@@ -364,6 +421,7 @@ export default {
       }
     },
     async fetchAllRepo() {
+      this.isLoading = true;
       try {
         // Chamar a API para buscar os repositórios do usuário
         const response = await axios.post(`http://localhost:3000/api/fetchAllRepo`, { params: { idProprietario: this.userId } }, {
@@ -376,11 +434,13 @@ export default {
         this.lstRepo = response.data.response;
       } catch (error) {
         console.error('Erro ao buscar os repositórios do usuário:', error);
+      }finally{
+        this.isLoading = false;
       }
     },
     async createRepo() {
       try {
-        let params = {
+        const params = {
           Repositorio: {
             Usuario: {
               id: this.userId
@@ -419,9 +479,11 @@ export default {
       }
     },
     async createEnvelope() {
+      this.isLoading = true;
       try {
         let newSignatarios = [];
-        for(sgn in this.signatarios){
+        for(let i=0; i<this.signatarios.length;i++){
+          let sgn = this.signatarios[i];
           newSignatarios.push({
             "ordem": sgn.tipoAcao,
             "tagAncoraCampos": null,
@@ -449,8 +511,7 @@ export default {
           });
         }
 
-
-        let params = {
+        const params = {
           "Envelope": {
             "descricao": this.descricao,
             "Repositorio": {
@@ -528,12 +589,37 @@ export default {
         });
 
         console.log(response.data.response);
-        isModalOpen = false;
+        await this.getEnvelopeData(response.data.response.data.idEnvelope);
+        this.isModalOpen = false;
+        this.showSuccessMessage(response.data.response.mensagem);
       } catch (error) {
+        this.showErrorMessage(error);
         console.error('Erro ao criar envelope:', error);
+      }finally{
+        this.isLoading = false;
       }
     },
+    async getEnvelopeData(idEnvelope) {
+      try{
+        const params = {
+          "idEnvelope": idEnvelope,
+          "getLobs": "N"
+        }
+        const response = await axios.post(`http://localhost:3000/api/getEnvelopeData`, { "params": params }, {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+          });
+
+          console.log(response.data.response);
+          await this.saveDB(response.data.response);
+        } catch (error) {
+          console.error('Erro ao criar envelope:', error);
+        }
+    },
     async fetchEnvelopesRepo() {
+      this.isLoading = true;
       try {
         // Chamar a API para buscar os envelopes do repositório selecionado
         const response = await axios.post(`http://localhost:3000/api/fetchEnvelopesRepo`, { params: { idRepositorio: this.selectedRepo.id } }, {
@@ -544,11 +630,19 @@ export default {
         });
 
         this.lstEnvelopes = response.data.response;
+        if(this.lstEnvelopes && this.lstEnvelopes.length){
+          this.lstEnvelopes.forEach((envelope) => {
+            this.buscarEnvelopePorId(envelope.id, true)
+          });
+        }
       } catch (error) {
         console.error('Erro ao buscar os repositórios do usuário:', error);
+      }finally{
+        this.isLoading = false;
       }
     },
     async sendEnvelope() {
+      this.isLoading = true;
       try {
         const params = {
           "Envelope": {
@@ -569,8 +663,91 @@ export default {
         });
 
         this.lstEnvelopes = response.data.response;
+        this.showSuccessMessage(response.data.response.mensagem);
       } catch (error) {
+        this.showErrorMessage(error);
         console.error('Erro ao encaminhar envelope:', error);
+      }finally{
+        this.isLoading = false;
+      }
+    },
+    async saveDB(envelope) {
+      try {
+        const ref = await db.ref('envelopes').push();
+        const envelopeId = ref.key;
+
+        await ref.set(envelope);
+        console.log('Envelope salvo com sucesso:', envelopeId);
+        return envelopeId;
+      } catch (error) {
+        console.error('Erro ao salvar envelope:', error);
+        throw new Error('Erro ao salvar envelope');
+      }
+    },
+    async buscarEnvelopePorId(idEnvelope, fromFetch = false) {
+      try {
+        const envelopesRef = db.ref('envelopes');
+        const snapshot = await envelopesRef.once('value');
+        let found = false;
+
+        if (snapshot.exists()) {
+          snapshot.forEach((childSnapshot) => {
+            const envelope = childSnapshot.val();
+
+            if (envelope.id === idEnvelope) {
+              if(!fromFetch){
+                this.downloadPDF(envelope);
+              }
+              found = true;
+            }
+          });
+
+          if(!found && fromFetch){
+            this.getEnvelopeData(idEnvelope);
+          }
+        } else {
+          this.getEnvelopeData(idEnvelope);
+          console.log('Nenhum envelope encontrado na coleção "envelopes"');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar envelope por ID:', error);
+      }
+    },
+    async downloadPDF(envelopeData) {
+      try {
+        const params = {
+          "hashSHA256": envelopeData.hashSHA256,
+          "incluirDocs": "N",
+          "versaoSemCertificado": null
+        }
+        const response = await axios.post(`http://localhost:3000/api/downloadPDF`, { "params": params }, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        let data = response.data.response;
+        const pdfBytes = Uint8Array.from(atob(data.envelopeContent), c => c.charCodeAt(0));
+
+        // Criar um Blob com o PDF convertido
+        const pdfBlob = new Blob([pdfBytes], { type: data.mimeType });
+
+        // Criar a URL temporária para o Blob
+        const url = URL.createObjectURL(pdfBlob);
+
+        // Criar um link e configurar o download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = data.nomeArquivo;
+
+        // Clicar no link para iniciar o download
+        link.click();
+
+        // Limpar a URL temporária após o download
+        URL.revokeObjectURL(url);
+      } catch (error) {
+
       }
     },
     onFileChange(event) {
@@ -606,7 +783,7 @@ export default {
       this.signatarios.push({
         nome: "",
         email: "",
-        tipoAcao: "assinar",
+        tipoAcao: "1",
       });
     },
     removeSignatario(index) {
@@ -630,6 +807,8 @@ export default {
     },
     onModalCancel() {
       this.isModalOpen = false;
+      this.isCreateEnvelopeModal = false;
+      this.isEncaminhaEnvelopeModal = false;
     },
     openCreateEnvelopeModal() {
       this.isCreateEnvelopeModal = true;
@@ -638,6 +817,20 @@ export default {
     openEncaminhaEnvelopeModal() {
       this.isEncaminhaEnvelopeModal = true;
       this.openModal("Encaminha Envelope");
+    },
+    showSuccessMessage(message) {
+      this.successMessage = message;
+      this.isSuccess = true;
+      setTimeout(() => {
+        this.isSuccess = false;
+      }, 5000);
+    },
+    showErrorMessage(message) {
+      this.errorMessage = message;
+      this.isError = true;
+      setTimeout(() => {
+        this.isError = false;
+      }, 5000);
     },
   },
 };

@@ -3,6 +3,9 @@
     <div class="modal-bg" v-if="isOpen">
       <div class="modal">
         <h3>{{ title }}</h3>
+        <div style="position: absolute; top: 5%; left: 95%;" @click="onCancel">
+          <font-awesome-icon icon="xmark"/>
+        </div>
         <slot></slot>
         <div class="modal-buttons">
           <button @click="onConfirm" class="btn-confirm">{{ confirmButtonText }}</button>

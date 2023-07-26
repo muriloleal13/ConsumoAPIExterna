@@ -13,12 +13,9 @@ const PORT = 3000;
 app.use(cors());
 
 // Middleware para parsear JSON no corpo das requisições
-// app.use(express.json());
 var bodyParser = require('body-parser');
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
-// app.use(express.json({limit: '50mb'}));
-// app.use(express.urlencoded({limit: '50mb'}));
 
 // Configuração do Swagger JSDoc
 const swaggerOptions = {
@@ -109,7 +106,7 @@ app.post('/api/getUserId', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
@@ -126,7 +123,7 @@ app.post('/api/getUserData', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
@@ -198,7 +195,7 @@ app.post('/api/fetchAllRepo', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
@@ -314,7 +311,7 @@ app.post('/api/createRepo', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
@@ -322,89 +319,224 @@ app.post('/api/createRepo', async (req, res) => {
  * @swagger
  * /api/createEnvelope:
  *   post:
- *     summary: Criar um novo envelope
- *     description: Esta rota permite criar um novo envelope a partir de um conjunto de parâmetros.
+ *     summary: Inserir envelope
+ *     description: Esta rota permite inserir um novo envelope a partir de um conjunto de parâmetros.
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token de autenticação para acessar a API externa
  *               params:
  *                 type: object
  *                 properties:
- *                   Repositorio:
+ *                   Envelope:
  *                     type: object
  *                     properties:
- *                       Usuario:
+ *                       descricao:
+ *                         type: string
+ *                         description: Descrição do envelope
+ *                       Repositorio:
  *                         type: object
  *                         properties:
  *                           id:
  *                             type: integer
- *                         example:
- *                           Usuario:
- *                             id: 123
- *                   descricao:
- *                     type: string
- *                   selectedRepo:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                       nome:
+ *                             description: ID do repositório do envelope
+ *                       mensagem:
+ *                         type: null
+ *                         description: Mensagem do envelope (nulo)
+ *                       mensagemObservadores:
+ *                         type: null
+ *                         description: Mensagem para observadores (nulo)
+ *                       mensagemNotificacaoSMS:
+ *                         type: null
+ *                         description: Mensagem de notificação por SMS (nulo)
+ *                       dataExpiracao:
+ *                         type: null
+ *                         description: Data de expiração (nulo)
+ *                       horaExpiracao:
+ *                         type: null
+ *                         description: Hora de expiração (nulo)
+ *                       usarOrdem:
  *                         type: string
- *                     example:
- *                       id: 456
- *                       nome: Repositório de Teste
- *                   documents:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         nomeArquivo:
- *                           type: string
- *                         arquivo:
- *                           type: string
- *                     example:
- *                       - nomeArquivo: arquivo1.pdf
- *                         arquivo: <base64_encoded_file_data>
- *                       - nomeArquivo: arquivo2.pdf
- *                         arquivo: <base64_encoded_file_data>
- *                   signatarios:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         nome:
- *                           type: string
- *                         email:
- *                           type: string
- *                         tipoAcao:
- *                           type: integer
- *                     example:
- *                       - nome: João
- *                         email: joao@example.com
- *                         tipoAcao: 1
- *                       - nome: Maria
- *                         email: maria@example.com
- *                         tipoAcao: 2
+ *                         description: Indica se o envelope utilizará ordem (S ou N)
+ *                       ConfigAuxiliar:
+ *                         type: object
+ *                         properties:
+ *                           documentosComXMLs:
+ *                             type: string
+ *                             description: Indica se o envelope possui documentos com XMLs (S ou N)
+ *                           urlCarimboTempo:
+ *                             type: null
+ *                             description: URL do carimbo do tempo (nulo)
+ *                       listaDocumentos:
+ *                         type: object
+ *                         properties:
+ *                           Documento:
+ *                             type: array
+ *                             description: Lista de documentos do envelope com as seguintes propriedades
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 nomeArquivo:
+ *                                   type: string
+ *                                   description: Nome do arquivo
+ *                                 mimeType:
+ *                                   type: string
+ *                                   description: Tipo do arquivo (MIME type)
+ *                                 conteudo:
+ *                                   type: string
+ *                                   description: Conteúdo do arquivo
+ *                                 listaXMLAuxiliar:
+ *                                   type: object
+ *                                   properties:
+ *                                     XMLAuxiliar:
+ *                                       type: array
+ *                                       description: Lista de XMLs auxiliares do documento
+ *                                       items:
+ *                                         type: object
+ *                                         properties:
+ *                                           nomeArquivo:
+ *                                             type: null
+ *                                             description: Nome do arquivo XML (nulo)
+ *                                           conteudoXML:
+ *                                             type: null
+ *                                             description: Conteúdo do arquivo XML (nulo)
+ *                                           listaXMLSignatario:
+ *                                             type: object
+ *                                             properties:
+ *                                               XMLSignatario:
+ *                                                 type: array
+ *                                                 description: Lista de XMLs do signatário
+ *                                                 items:
+ *                                                   type: object
+ *                                                   properties:
+ *                                                     emailSignatario:
+ *                                                       type: null
+ *                                                       description: Email do signatário (nulo)
+ *                                                     idNodeAssinatura:
+ *                                                       type: null
+ *                                                       description: ID do nó da assinatura (nulo)
+ *                                                     restringirTiposCertificados:
+ *                                                       type: null
+ *                                                       description: Restringir tipos de certificados (nulo)
+ *                                                     restringirPessoaFisica:
+ *                                                       type: null
+ *                                                       description: Restringir pessoa física (nulo)
+ *                                                     restringirPessoaJuridica:
+ *                                                       type: null
+ *                                                       description: Restringir pessoa jurídica (nulo)
+ *                                                     carimboInterno:
+ *                                                       type: null
+ *                                                       description: Carimbo interno (nulo)
+ *                       listaSignatariosEnvelope:
+ *                         type: object
+ *                         properties:
+ *                           SignatarioEnvelope:
+ *                             type: array
+ *                             description: Lista de signatários do envelope
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 # Propriedades do signatário (preencher conforme necessário)
+ *                       listaObservadores:
+ *                         type: object
+ *                         properties:
+ *                           Observador:
+ *                             type: array
+ *                             description: Lista de observadores do envelope
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 # Propriedades do observador (preencher conforme necessário)
+ *                       listaTags:
+ *                         type: object
+ *                         properties:
+ *                           Tag:
+ *                             type: array
+ *                             description: Lista de tags do envelope
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 # Propriedades da tag (preencher conforme necessário)
+ *                       listaInfoAdicional:
+ *                         type: object
+ *                         properties:
+ *                           InfoAdicional:
+ *                             type: array
+ *                             description: Lista de informações adicionais do envelope
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 # Propriedades da informação adicional (preencher conforme necessário)
+ *                       incluirHashTodasPaginas:
+ *                         type: string
+ *                         description: Indica se deve incluir hash em todas as páginas (S ou N)
+ *                       permitirDespachos:
+ *                         type: string
+ *                         description: Indica se deve permitir despachos (S ou N)
+ *                       ignorarNotificacoes:
+ *                         type: string
+ *                         description: Indica se deve ignorar notificações (S ou N)
+ *                       ignorarNotificacoesPendentes:
+ *                         type: string
+ *                         description: Indica se deve ignorar notificações pendentes (S ou N)
+ *                       qrCodePosLeft:
+ *                         type: null
+ *                         description: Posição esquerda do QR code (nulo)
+ *                       qrCodePosTop:
+ *                         type: null
+ *                         description: Posição superior do QR code (nulo)
+ *                       dataIniContrato:
+ *                         type: null
+ *                         description: Data inicial do contrato (nulo)
+ *                       dataFimContrato:
+ *                         type: null
+ *                         description: Data final do contrato (nulo)
+ *                       objetoContrato:
+ *                         type: null
+ *                         description: Objeto do contrato (nulo)
+ *                       numContrato:
+ *                         type: null
+ *                         description: Número do contrato (nulo)
+ *                       valorContrato:
+ *                         type: null
+ *                         description: Valor do contrato (nulo)
+ *                       descricaoContratante:
+ *                         type: null
+ *                         description: Descrição do contratante (nulo)
+ *                       descricaoContratado:
+ *                         type: null
+ *                         description: Descrição do contratado (nulo)
+ *                       bloquearDesenhoPaginas:
+ *                         type: string
+ *                         description: Indica se deve bloquear desenho das páginas (S ou N)
+ *                   gerarTags:
+ *                     type: string
+ *                     description: Indica se deve gerar tags (S ou N)
+ *                   encaminharImediatamente:
+ *                     type: string
+ *                     description: Indica se deve encaminhar imediatamente (S ou N)
+ *                   detectarCampos:
+ *                     type: string
+ *                     description: Indica se deve detectar campos (S ou N)
+ *                   verificarDuplicidadeConteudo:
+ *                     type: string
+ *                     description: Indica se deve verificar duplicidade de conteúdo (S ou N)
  *     responses:
  *       200:
- *         description: Sucesso na criação do envelope
+ *         description: Sucesso ao inserir o envelope
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
  *                 response:
- *                   type: object
- *                   properties:
- *                     idEnvelope:
- *                       type: integer
- *                     statusEnvelope:
- *                       type: string
- *                     msg:
- *                       type: string
+ *                   type: string
+ *                   description: Mensagem de sucesso
  *       500:
  *         description: Erro ao chamar a API externa
  *         content:
@@ -414,6 +546,7 @@ app.post('/api/createRepo', async (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
+ *                   description: Mensagem de erro
  */
 app.post('/api/createEnvelope', async (req, res) => {
   try {
@@ -428,7 +561,24 @@ app.post('/api/createEnvelope', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
+  }
+});
+
+app.post('/api/getEnvelopeData', async (req, res) => {
+  try {
+    const { params } = req.body;
+
+    const response = await axios.post(process.env.API_URL + '/getDadosEnvelope', { "token": process.env.TOKEN, "params": params }, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
@@ -436,26 +586,87 @@ app.post('/api/createEnvelope', async (req, res) => {
  * @swagger
  * /api/fetchEnvelopesRepo:
  *   post:
- *     summary: Buscar envelopes por repositório ou pasta
- *     description: Esta rota permite buscar envelopes por repositório ou pasta a partir de um conjunto de parâmetros.
+ *     summary: Obter envelopes por repositório ou pasta
+ *     description: Esta rota permite obter envelopes com base em um repositório ou pasta especificada.
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               params:
- *                 type: object
- *                 properties:
- *                   idRepositorio:
- *                     type: integer
- *                     description: ID do repositório
- *                   idPasta:
- *                     type: integer
- *                     description: ID da pasta (opcional)
+ *               response:
+ *                 type: array
+ *                 description: Lista de envelopes com as seguintes propriedades
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: ID do envelope
+ *                     descricao:
+ *                       type: string
+ *                       description: Descrição do envelope
+ *                     dataHoraCriacao:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Data e hora de criação do envelope
+ *                     dataEnvioAgendado:
+ *                       type: null
+ *                       description: Data de envio agendado (nulo)
+ *                     horaEnvioAgendado:
+ *                       type: null
+ *                       description: Hora de envio agendado (nulo)
+ *                     status:
+ *                       type: string
+ *                       description: Status do envelope
+ *                     numeroPaginas:
+ *                       type: string
+ *                       description: Número de páginas do envelope
+ *                     hashSHA256:
+ *                       type: string
+ *                       description: Hash SHA256 do envelope
+ *                     permitirDownload:
+ *                       type: string
+ *                       description: Indica se o download do envelope é permitido (S ou N)
+ *                     permitirResetarExpiracao:
+ *                       type: string
+ *                       description: Indica se o reset da expiração é permitido (S ou N)
+ *                     permitirAlterarExpiracao:
+ *                       type: string
+ *                       description: Indica se a alteração da expiração é permitida (S ou N)
+ *                     permitirRestaurarDaLixeira:
+ *                       type: string
+ *                       description: Indica se a restauração da lixeira é permitida (S ou N)
+ *                     permitirEnvioParaLixeira:
+ *                       type: string
+ *                       description: Indica se o envio para lixeira é permitido (S ou N)
+ *                     permitirDespachos:
+ *                       type: string
+ *                       description: Indica se os despachos são permitidos (S ou N)
+ *                     emAcompanhamento:
+ *                       type: string
+ *                       description: Indica se o envelope está em acompanhamento (S ou N)
+ *                     Usuario:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           description: ID do usuário
+ *                         nome:
+ *                           type: string
+ *                           description: Nome do usuário
+ *                     permiteArquivar:
+ *                       type: string
+ *                       description: Indica se o arquivamento é permitido (S ou N)
+ *                     permiteCancelar:
+ *                       type: string
+ *                       description: Indica se o cancelamento é permitido (S ou N)
+ *                     statusDescr:
+ *                       type: string
+ *                       description: Descrição do status do envelope
  *     responses:
  *       200:
- *         description: Sucesso na busca dos envelopes
+ *         description: Sucesso ao obter envelopes
  *         content:
  *           application/json:
  *             schema:
@@ -463,17 +674,7 @@ app.post('/api/createEnvelope', async (req, res) => {
  *               properties:
  *                 response:
  *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       idEnvelope:
- *                         type: integer
- *                       descricao:
- *                         type: string
- *                       dataHoraCriacao:
- *                         type: string
- *                       statusEnvelope:
- *                         type: string
+ *                   description: Lista de envelopes com as propriedades descritas
  *       500:
  *         description: Erro ao chamar a API externa
  *         content:
@@ -483,6 +684,7 @@ app.post('/api/createEnvelope', async (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
+ *                   description: Mensagem de erro
  */
 app.post('/api/fetchEnvelopesRepo', async (req, res) => {
   try {
@@ -497,7 +699,7 @@ app.post('/api/fetchEnvelopesRepo', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
@@ -513,26 +715,30 @@ app.post('/api/fetchEnvelopesRepo', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token de autenticação
  *               params:
  *                 type: object
  *                 properties:
- *                   idEnvelope:
- *                     type: integer
- *                     description: ID do envelope que será encaminhado para assinaturas
- *                   destinatarios:
- *                     type: array
- *                     description: Lista de destinatários do envelope com as seguintes propriedades
- *                     items:
- *                       type: object
- *                       properties:
- *                         nome:
- *                           type: string
- *                           description: Nome do destinatário
- *                         email:
- *                           type: string
- *                           description: Email do destinatário
- *                         tipoAcao:
- *                           enum: [1, 2, 3]  # Adicionando enumeração para os valores permitidos
+ *                   Envelope:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         description: ID do envelope que será encaminhado para assinaturas
+ *                   agendarEnvio:
+ *                     type: string
+ *                     description: Indica se o envio será agendado (S ou N)
+ *                   detectarCampos:
+ *                     type: string
+ *                     description: Indica se os campos serão detectados (S ou N)
+ *                   dataEnvioAgendado:
+ *                     type: null
+ *                     description: Data de envio agendado (nulo)
+ *                   horaEnvioAgendado:
+ *                     type: null
+ *                     description: Hora de envio agendado (nulo)
  *     responses:
  *       200:
  *         description: Sucesso ao encaminhar o envelope para assinaturas
@@ -553,8 +759,8 @@ app.post('/api/fetchEnvelopesRepo', async (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
+ *                   description: Mensagem de erro
  */
-
 app.post('/api/sendEnvelope', async (req, res) => {
   try {
     const { params } = req.body;
@@ -568,7 +774,24 @@ app.post('/api/sendEnvelope', async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao chamar a API externa' });
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
+  }
+});
+
+app.post('/api/downloadPDF', async (req, res) => {
+  try {
+    const { params } = req.body;
+
+    const response = await axios.post(process.env.API_URL + '/downloadPDFEnvelope', { "token": process.env.TOKEN, "params": params }, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
 
