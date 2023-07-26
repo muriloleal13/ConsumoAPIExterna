@@ -8,8 +8,20 @@
         </div>
         <slot></slot>
         <div class="modal-buttons">
-          <button @click="onConfirm" class="btn-confirm">{{ confirmButtonText }}</button>
-          <button class="cancel" @click="onCancel">{{ cancelButtonText }}</button>
+          <button @click="onConfirm" class="btn-confirm">
+            <div v-if="isLoading">
+              <div class="loading"></div>
+              <span style="padding: 5px;">Carregando...</span>
+            </div>
+            <div v-else>
+              <font-awesome-icon icon="check" />
+              {{ confirmButtonText }}
+            </div>
+          </button>
+          <button class="cancel" @click="onCancel">
+            <font-awesome-icon icon="ban" />
+            {{ cancelButtonText }}
+          </button>
         </div>
       </div>
     </div>
@@ -20,6 +32,10 @@
 export default {
   props: {
     isOpen: {
+      type: Boolean,
+      required: true,
+    },
+    isLoading: {
       type: Boolean,
       required: true,
     },
@@ -89,5 +105,13 @@ export default {
 
 .modal-buttons button.cancel {
   background-color: #ccc;
+}
+
+.modal-buttons button.cancel:hover {
+  background-color: #868484;
+}
+
+.modal-buttons button.btn-confirm:hover {
+  background-color: hsl(139, 53%, 50%);
 }
 </style>

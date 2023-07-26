@@ -1,23 +1,23 @@
 <template>
   <div class="container">
-    <div v-if="this.isLoading" class="info-container">
+    <div v-if="isLoading && !isModalOpen" class="info-container">
       <div class="loading"></div>
       <span style="padding: 5px;">Carregando...</span>
     </div>
 
-    <div v-if="this.isSuccess" class="info-container" style="background-color: rgb(120, 255, 120);">
+    <div v-if="isSuccess" class="info-container" style="background-color: rgb(120, 255, 120);">
       <font-awesome-icon icon="check" />
-      <span style="padding: 5px;">{{ this.successMessage }}</span>
+      <span style="padding: 5px;">{{ successMessage }}</span>
     </div>
 
-    <div v-if="this.isError" class="info-container" style="background-color: rgb(255, 116, 116);">
+    <div v-if="isError.value" class="info-container" style="background-color: rgb(255, 116, 116);">
       <font-awesome-icon icon="xmark"/>
-      <span style="padding: 5px;">{{ this.errorMessage }}</span>
+      <span style="padding: 5px;">{{ errorMessage }}</span>
     </div>
 
     <!-- Coluna Única -->
     <div class="main-column">
-      <h1>Consumo de API AVMB</h1>
+      <h1>Consumo de API Externa</h1>
 
       <div class="button-container">
         <button @click="getUserId"><font-awesome-icon icon="user"/>Identificador do Usuário</button>
@@ -65,7 +65,7 @@
               <td>{{ envelope.descricao }}</td>
               <td>{{ envelope.dataHoraCriacao }}</td>
               <td>{{ getStatusDescription(envelope.status) }}</td>
-              <td v-if="envelope.status == 3" style="text-align: center;" @click="this.buscarEnvelopePorId(envelope.id)"><font-awesome-icon icon="download" /></td>
+              <td v-if="envelope.status == 3" style="text-align: center;" @click="buscarEnvelopePorId(envelope.id)"><font-awesome-icon icon="download" /></td>
               <td v-else style="text-align: center;">-</td>
             </tr>
           </tbody>
@@ -91,14 +91,15 @@
       </div>
     </Teleport> -->
     <CustomModal
-      :is-open="this.isModalOpen"
+      :is-open="isModalOpen"
       :title="modalTitle"
+      :is-loading="isLoading"
       @confirm="onModalConfirm"
       @cancel="onModalCancel"
     >
       <div v-if="isCreateEnvelopeModal">
         <div class="input-container">
-          <input type="text" v-model="descricao" placeholder="Descrição do envelope" class="input-field">
+          <input type="text" v-model="descricao" placeholder="Descrição do envelope" class="input-field" :class="{ error: isEmpty(descricao) }">
           <select v-model="selectedRepo" class="custom-select" style="width: 100%;">
             <option value="">Selecione um repositório</option>
             <option v-for="repo in lstRepo" :key="repo.id" :value="repo">
@@ -109,7 +110,7 @@
 
         <div class="add-document-container">
           <div class="input-container">
-            <input type="file" @change="onFileChange">
+            <input type="file" @change="onFileChange" :class="{ error: !documents.length }">
             <button @click="addDocument" :disabled="!selectedFile" class="btn-adicionar">Adicionar Documento</button>
           </div>
           <ul>
@@ -121,18 +122,21 @@
         </div>
 
         <div class="signatarios-container">
-          <h3>Adicionar Signatário</h3>
+          <h3 :class="{error: !signatarios.length}">Adicionar Signatário</h3>
           <div class="signatario" v-for="(signatario, index) in signatarios" :key="index">
-            <input v-model="signatario.nome" type="text" placeholder="Nome" class="input-field">
-            <input v-model="signatario.email" type="text" placeholder="Email" class="input-field">
-            <select v-model="signatario.tipoAcao" class="custom-select">
+            <input v-model="signatario.nome" type="text" placeholder="Nome" class="input-field" :class="{ error: isEmpty(signatario.nome) }">
+            <input v-model="signatario.email" type="text" placeholder="Email" class="input-field" :class="{ error: isEmpty(signatario.email) }">
+            <select v-model="signatario.tipoAcao" class="custom-select" :class="{ error: isEmpty(signatario.tipoAcao) }">
               <option value="1">Assinar</option>
               <option value="2">Aprovar</option>
               <option value="3">Reconhecer</option>
             </select>
             <button @click="removeSignatario(index)" class="btn-remover">Remover</button>
           </div>
-          <button @click="addSignatario" class="btn-adicionar">Adicionar Signatário</button>
+          <button @click="addSignatario" class="btn-adicionar">
+            <font-awesome-icon icon="plus" />
+            Adicionar Signatário
+          </button>
         </div>
       </div>
 
@@ -169,6 +173,10 @@
   border: #f2f2f2 1px solid;
   border-radius: 4px;
   margin-bottom: 10px;
+}
+
+.error {
+  border: 2px solid red;
 }
 
 h1, h2 {
@@ -336,43 +344,42 @@ textarea.json-textarea {
 </style>
 
 <script>
+import { ref as vueRef, reactive, computed } from 'vue';
 import axios from 'axios';
 import CustomModal from './components/CustomModal.vue';
 import { db } from './main';
+import { ref as firebaseRef, push, set, onValue } from 'firebase/database';
 
 export default {
-  data() {
-    return {
-      userId: null,
-      userData: null,
-      isLoading: false,
-      isSuccess: false,
-      isError: false,
-      isModalOpen: false,
-      successMessage: '',
-      errorMessage: '',
-      modalTitle: '',
-      isCreateEnvelopeModal: false,
-      isEncaminhaEnvelopeModal: false,
-      repoName: '',
-      lstRepo: [],
-      lstEnvelopes: [],
-      descricao: '',
-      selectedRepo: "",
-      selectedEnvelope: "",
-      selectedFile: null,
-      base64: '',
-      documents: [],
-      signatario: null,
-      signatarios: [],
-    };
-  },
   components: {
     CustomModal,
   },
-  computed: {
+  setup() {
+    const userId = vueRef(null);
+    const userData = vueRef(null);
+    const isLoading = vueRef(false);
+    const isSuccess = vueRef(false);
+    const isError = vueRef(false);
+    const isModalOpen = vueRef(false);
+    const successMessage = vueRef('');
+    const errorMessage = vueRef('');
+    const modalTitle = vueRef('');
+    const isCreateEnvelopeModal = vueRef(false);
+    const isEncaminhaEnvelopeModal = vueRef(false);
+    const repoName = vueRef('');
+    const lstRepo = vueRef([]);
+    const lstEnvelopes = vueRef([]);
+    const descricao = vueRef('');
+    const selectedRepo = vueRef('');
+    const selectedEnvelope = vueRef('');
+    const selectedFile = vueRef(null);
+    const base64 = vueRef('');
+    const documents = vueRef([]);
+    const signatario = vueRef(null);
+    const signatarios = vueRef([]);
+
     // Mapear os valores de status para suas descrições correspondentes
-    statusDescriptions() {
+    const statusDescriptions = computed(() => {
       return {
         1: 'Em construção',
         2: 'Aguardando Assinaturas',
@@ -381,11 +388,10 @@ export default {
         5: 'Cancelado',
         6: 'Expirado',
       };
-    },
-  },
-  methods: {
-    async getUserId() {
-      this.isLoading = true;
+    });
+
+    const getUserId = async () => {
+      isLoading.value = true;
       try {
         // Chamar a API para buscar o identificador do usuário
         const response = await axios.post(`http://localhost:3000/api/getUserId`, { params: {} }, {
@@ -395,57 +401,56 @@ export default {
           },
         });
 
-        this.userId = response.data.response.Usuario.id;
-        await this.fetchAllRepo();
-        // await this.getUserData();
+        userId.value = response.data.response.Usuario.id;
+        await fetchAllRepo();
       } catch (error) {
-        this.showErrorMessage(error);
+        showErrorMessage(error);
         console.error('Erro ao buscar o identificador do usuário:', error);
       }finally{
-        this.isLoading = false;
+        isLoading.value = false;
       }
-    },
-    async getUserData() {
+    };
+    const getUserData = async () => {
       try {
         // Chamar a API para buscar os dados do usuário usando o userId
-        const response = await axios.post(`http://localhost:3000/api/getUserData`, { params: {idUsuario: this.userId} }, {
+        const response = await axios.post(`http://localhost:3000/api/getUserData`, { params: {idUsuario: userId.value} }, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           },
         });
 
-        this.userData = response.data.response;
+        userData.value = response.data.response;
       } catch (error) {
         console.error('Erro ao buscar os dados do usuário:', error);
       }
-    },
-    async fetchAllRepo() {
-      this.isLoading = true;
+    };
+    const fetchAllRepo = async () => {
+      isLoading.value = true;
       try {
         // Chamar a API para buscar os repositórios do usuário
-        const response = await axios.post(`http://localhost:3000/api/fetchAllRepo`, { params: { idProprietario: this.userId } }, {
+        const response = await axios.post(`http://localhost:3000/api/fetchAllRepo`, { params: { idProprietario: userId.value } }, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           },
         });
 
-        this.lstRepo = response.data.response;
+        lstRepo.value = response.data.response;
       } catch (error) {
         console.error('Erro ao buscar os repositórios do usuário:', error);
       }finally{
-        this.isLoading = false;
+        isLoading.value = false;
       }
-    },
-    async createRepo() {
+    };
+    const createRepo = async () => {
       try {
         const params = {
           Repositorio: {
             Usuario: {
-              id: this.userId
+              id: userId.value
             },
-            nome: this.repoName,
+            nome: repoName.value,
             compartilharCriacaoDocs:"S",
             compartilharVisualizacaoDocs:"S",
             ocultarEmailSignatarios:"N",
@@ -470,20 +475,24 @@ export default {
         });
 
         let id = response.data.response.data.idRepositorio
-        this.lstRepo = [...this.lstRepo, {id: this.repoName}];
+        lstRepo.value = [...lstRepo, {id: repoName}];
         // Feche o modal após criar o repositório
-        this.isModalOpen = false;
-        this.repoName = '';
+        isModalOpen.value = false;
+        repoName.value = '';
       } catch (error) {
         console.error('Erro ao criar o repositório:', error);
       }
-    },
-    async createEnvelope() {
-      this.isLoading = true;
+    };
+    const createEnvelope = async () => {
+      if(!canCreateEnvelope()){
+        return;
+      }
+      isLoading.value = true;
       try {
         let newSignatarios = [];
-        for(let i=0; i<this.signatarios.length;i++){
-          let sgn = this.signatarios[i];
+        for(let i=0; i<signatarios.value.length;i++){
+          let sgn = signatarios.value[i];
+          console.log(sgn, sgn.tipoAcao, sgn.nome, sgn.email);
           newSignatarios.push({
             "ordem": sgn.tipoAcao,
             "tagAncoraCampos": null,
@@ -513,9 +522,9 @@ export default {
 
         const params = {
           "Envelope": {
-            "descricao": this.descricao,
+            "descricao": descricao.value,
             "Repositorio": {
-                "id": this.selectedRepo.id
+                "id": selectedRepo.value.id
             },
             "mensagem": null,
             "mensagemObservadores": null,
@@ -528,7 +537,7 @@ export default {
                 "urlCarimboTempo": null
             },
             "listaDocumentos":{
-                "Documento": this.documents
+                "Documento": documents.value
             },
             "listaSignatariosEnvelope":{
               "SignatarioEnvelope": newSignatarios
@@ -589,17 +598,18 @@ export default {
         });
 
         console.log(response.data.response);
-        await this.getEnvelopeData(response.data.response.data.idEnvelope);
-        this.isModalOpen = false;
-        this.showSuccessMessage(response.data.response.mensagem);
+        await getEnvelopeData(response.data.response.data.idEnvelope);
+        showSuccessMessage(response.data.response.mensagem);
       } catch (error) {
-        this.showErrorMessage(error);
+        showErrorMessage(error);
         console.error('Erro ao criar envelope:', error);
       }finally{
-        this.isLoading = false;
+        isLoading.value = false;
+        isModalOpen.value = false;
+        resetData();
       }
-    },
-    async getEnvelopeData(idEnvelope) {
+    };
+    const getEnvelopeData = async (idEnvelope) => {
       try{
         const params = {
           "idEnvelope": idEnvelope,
@@ -613,40 +623,40 @@ export default {
           });
 
           console.log(response.data.response);
-          await this.saveDB(response.data.response);
+          await saveDB(response.data.response);
         } catch (error) {
           console.error('Erro ao criar envelope:', error);
         }
-    },
-    async fetchEnvelopesRepo() {
-      this.isLoading = true;
+    };
+    const fetchEnvelopesRepo = async () => {
+      isLoading.value = true;
       try {
         // Chamar a API para buscar os envelopes do repositório selecionado
-        const response = await axios.post(`http://localhost:3000/api/fetchEnvelopesRepo`, { params: { idRepositorio: this.selectedRepo.id } }, {
+        const response = await axios.post(`http://localhost:3000/api/fetchEnvelopesRepo`, { params: { idRepositorio: selectedRepo.value.id } }, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           },
         });
 
-        this.lstEnvelopes = response.data.response;
-        if(this.lstEnvelopes && this.lstEnvelopes.length){
-          this.lstEnvelopes.forEach((envelope) => {
-            this.buscarEnvelopePorId(envelope.id, true)
+        lstEnvelopes.value = response.data.response;
+        if(lstEnvelopes.value && lstEnvelopes.value.length){
+          lstEnvelopes.value.forEach((envelope) => {
+            buscarEnvelopePorId(envelope.id, true)
           });
         }
       } catch (error) {
         console.error('Erro ao buscar os repositórios do usuário:', error);
       }finally{
-        this.isLoading = false;
+        isLoading.value = false;
       }
-    },
-    async sendEnvelope() {
-      this.isLoading = true;
+    };
+    const sendEnvelope = async () => {
+      isLoading.value = true;
       try {
         const params = {
           "Envelope": {
-            "id": this.selectedEnvelope
+            "id": selectedEnvelope.value
           },
           "agendarEnvio":"N",
           "detectarCampos":"N",
@@ -662,58 +672,67 @@ export default {
           },
         });
 
-        this.lstEnvelopes = response.data.response;
-        this.showSuccessMessage(response.data.response.mensagem);
+        lstEnvelopes.value = response.data.response;
+        showSuccessMessage(response.data.response.mensagem);
       } catch (error) {
-        this.showErrorMessage(error);
+        showErrorMessage(error);
         console.error('Erro ao encaminhar envelope:', error);
       }finally{
-        this.isLoading = false;
+        isLoading.value = false;
+        isModalOpen.value = false;
+        resetData();
       }
-    },
-    async saveDB(envelope) {
+    };
+    const saveDB = async (envelope) => {
       try {
-        const ref = await db.ref('envelopes').push();
-        const envelopeId = ref.key;
+        const envelopesRef = firebaseRef(db, 'envelopes');
+        const newEnvelopeRef = push(envelopesRef);
+        const envelopeId = newEnvelopeRef.key;
 
-        await ref.set(envelope);
+        await set(newEnvelopeRef, envelope);
         console.log('Envelope salvo com sucesso:', envelopeId);
         return envelopeId;
       } catch (error) {
         console.error('Erro ao salvar envelope:', error);
         throw new Error('Erro ao salvar envelope');
       }
-    },
-    async buscarEnvelopePorId(idEnvelope, fromFetch = false) {
+    };
+    const buscarEnvelopePorId = async (idEnvelope, fromFetch = false) => {
       try {
-        const envelopesRef = db.ref('envelopes');
-        const snapshot = await envelopesRef.once('value');
-        let found = false;
+        const envelopesRef = firebaseRef(db, 'envelopes');
+        const snapshot = await new Promise((resolve, reject) => {
+          onValue(envelopesRef, (snapshot) => {
+            resolve(snapshot);
+          }, {
+            onlyOnce: true
+          });
+        });
 
         if (snapshot.exists()) {
+          let found = false;
           snapshot.forEach((childSnapshot) => {
             const envelope = childSnapshot.val();
 
             if (envelope.id === idEnvelope) {
-              if(!fromFetch){
-                this.downloadPDF(envelope);
+              if (!fromFetch) {
+                downloadPDF(envelope);
               }
               found = true;
             }
           });
 
-          if(!found && fromFetch){
-            this.getEnvelopeData(idEnvelope);
+          if (!found && fromFetch) {
+            getEnvelopeData(idEnvelope);
           }
         } else {
-          this.getEnvelopeData(idEnvelope);
+          getEnvelopeData(idEnvelope);
           console.log('Nenhum envelope encontrado na coleção "envelopes"');
         }
       } catch (error) {
         console.error('Erro ao buscar envelope por ID:', error);
       }
-    },
-    async downloadPDF(envelopeData) {
+    };
+    const downloadPDF = async (envelopeData) => {
       try {
         const params = {
           "hashSHA256": envelopeData.hashSHA256,
@@ -749,89 +768,160 @@ export default {
       } catch (error) {
 
       }
-    },
-    onFileChange(event) {
-      this.selectedFile = event.target.files[0];
-      this.toBase64(this.selectedFile).then(
-        data => this.base64 = data
+    };
+    const onFileChange = (event) => {
+      selectedFile.value = event.target.files[0];
+      toBase64(selectedFile.value).then(
+        data => base64.value = data
       );
-    },
-    addDocument() {
-      if (this.selectedFile) {
+    };
+    const addDocument = () => {
+      if (selectedFile.value) {
         let doc = {
-          nomeArquivo: this.selectedFile.name,
-          mimeType: this.selectedFile.type,
-          conteudo: this.base64.replace(`data:${this.selectedFile.type};base64,`,''),
+          nomeArquivo: selectedFile.value.name,
+          mimeType: selectedFile.value.type,
+          conteudo: base64.value.replace(`data:${selectedFile.value.type};base64,`,''),
         };
-        this.documents.push(doc);
-        this.selectedFile = null;
-        this.base64 = '';
+        documents.value.push(doc);
+        selectedFile.value = null;
+        base64.value = '';
       }
-    },
-    removeDocument(index) {
-      this.documents.splice(index, 1);
-    },
-    toBase64(file) {
+    };
+    const removeDocument = (index) => {
+      documents.value.splice(index, 1);
+    };
+    const toBase64 = (file) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
       });
-    },
-    addSignatario() {
-      this.signatarios.push({
+    };
+    const addSignatario = () => {
+      signatarios.value.push({
         nome: "",
         email: "",
         tipoAcao: "1",
       });
-    },
-    removeSignatario(index) {
-      this.signatarios.splice(index, 1);
-    },
-    getStatusDescription(status) {
-      return this.statusDescriptions[status] || 'Desconhecido';
-    },
-    openModal(title) {
-      this.isModalOpen = true;
-      this.modalTitle = title;
-    },
-    onModalConfirm() {
-      if (this.isCreateEnvelopeModal) {
-        this.createEnvelope();
-      } else if (this.isEncaminhaEnvelopeModal) {
-        this.sendEnvelope();
+    };
+    const removeSignatario = (index) => {
+      signatarios.value.splice(index, 1);
+    };
+    const getStatusDescription = (status) => {
+      return statusDescriptions.value[status] || 'Desconhecido';
+    };
+    const openModal = (title) => {
+      isModalOpen.value = true;
+      modalTitle.value = title;
+    };
+    const onModalConfirm = () => {
+      if (isCreateEnvelopeModal.value) {
+        createEnvelope();
+      } else if (isEncaminhaEnvelopeModal.value) {
+        sendEnvelope();
       }
+    };
+    const onModalCancel = () => {
+      isModalOpen.value = false;
+      isCreateEnvelopeModal.value = false;
+      isEncaminhaEnvelopeModal.value = false;
+      resetData();
+    };
+    const openCreateEnvelopeModal = () => {
+      isCreateEnvelopeModal.value = true;
+      openModal("Criar Envelope");
+    };
+    const openEncaminhaEnvelopeModal = () => {
+      isEncaminhaEnvelopeModal.value = true;
+      openModal("Encaminha Envelope");
+    };
+    const showSuccessMessage = (message) => {
+      successMessage.value = message;
+      isSuccess.value = true;
+      setTimeout(() => {
+        isSuccess.value = false;
+      }, 5000);
+    };
+    const showErrorMessage = (message) => {
+      errorMessage.value = message;
+      isError.value = true;
+      setTimeout(() => {
+        isError.value = false;
+      }, 5000);
+    };
+    const isEmpty = (value) => {
+      return value.trim() === '';
+    };
+    const canCreateEnvelope = () => {
+      return Boolean(descricao.value ||
+         selectedRepo.value ||
+         documents.value.length ||
+         signatarios.value.length);
+    };
+    const resetData = () => {
+      descricao.value = '';
+      selectedRepo.value = '';
+      selectedEnvelope.value = '';
+      selectedFile.value = null;
+      base64.value = '';
+      documents.value = [];
+      signatario.value = null;
+      signatarios.value = [];
+    }
 
-      this.isModalOpen = false;
-    },
-    onModalCancel() {
-      this.isModalOpen = false;
-      this.isCreateEnvelopeModal = false;
-      this.isEncaminhaEnvelopeModal = false;
-    },
-    openCreateEnvelopeModal() {
-      this.isCreateEnvelopeModal = true;
-      this.openModal("Criar Envelope");
-    },
-    openEncaminhaEnvelopeModal() {
-      this.isEncaminhaEnvelopeModal = true;
-      this.openModal("Encaminha Envelope");
-    },
-    showSuccessMessage(message) {
-      this.successMessage = message;
-      this.isSuccess = true;
-      setTimeout(() => {
-        this.isSuccess = false;
-      }, 5000);
-    },
-    showErrorMessage(message) {
-      this.errorMessage = message;
-      this.isError = true;
-      setTimeout(() => {
-        this.isError = false;
-      }, 5000);
-    },
+    return {
+      userId,
+      userData,
+      isLoading,
+      isSuccess,
+      isError,
+      isModalOpen,
+      successMessage,
+      errorMessage,
+      modalTitle,
+      isCreateEnvelopeModal,
+      isEncaminhaEnvelopeModal,
+      repoName,
+      lstRepo,
+      lstEnvelopes,
+      descricao,
+      selectedRepo,
+      selectedEnvelope,
+      selectedFile,
+      base64,
+      documents,
+      signatario,
+      signatarios,
+      statusDescriptions,
+      getUserId,
+      getUserData,
+      fetchAllRepo,
+      createRepo,
+      createEnvelope,
+      getEnvelopeData,
+      fetchEnvelopesRepo,
+      sendEnvelope,
+      saveDB,
+      buscarEnvelopePorId,
+      downloadPDF,
+      onFileChange,
+      addDocument,
+      removeDocument,
+      toBase64,
+      addSignatario,
+      removeSignatario,
+      getStatusDescription,
+      openModal,
+      onModalConfirm,
+      onModalCancel,
+      openCreateEnvelopeModal,
+      openEncaminhaEnvelopeModal,
+      showSuccessMessage,
+      showErrorMessage,
+      isEmpty,
+      canCreateEnvelope,
+    };
   },
 };
 </script>

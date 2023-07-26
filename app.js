@@ -35,7 +35,6 @@ const swaggerSpec = swaggerJSDoc(swaggerOptions);
 // Rota para acessar a documentação do Swagger
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
-// Middleware para validar o token de acesso
 app.use((req, res, next) => {
   if (process.env.TOKEN === undefined) {
     return res.status(401).json({ message: 'Token inválido' });
@@ -565,6 +564,58 @@ app.post('/api/createEnvelope', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/getEnvelopeData:
+ *   post:
+ *     summary: Buscar dados do envelope
+ *     description: Esta rota permite buscar os dados de um envelope a partir de um conjunto de parâmetros.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *               params:
+ *                 type: object
+ *                 properties:
+ *                   idEnvelope:
+ *                     type: integer
+ *                     description: ID do envelope a ser buscado
+ *                   getLobs:
+ *                     type: string
+ *                     description: Indica se deve buscar informações adicionais (Y) ou não (N)
+ *             required:
+ *               - idEnvelope
+ *               - getLobs
+ *           example:
+ *             token: "56ht9p-Li8k5zHaQ2Dzxzijr..."
+ *             params:
+ *               idEnvelope: 1951
+ *               getLobs: "N"
+ *     responses:
+ *       '200':
+ *         description: Sucesso ao buscar os dados do envelope
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 response:
+ *                   type: string
+ *                   description: Mensagem de sucesso
+ *       '500':
+ *         description: Erro ao chamar a API externa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 app.post('/api/getEnvelopeData', async (req, res) => {
   try {
     const { params } = req.body;
@@ -586,97 +637,43 @@ app.post('/api/getEnvelopeData', async (req, res) => {
  * @swagger
  * /api/fetchEnvelopesRepo:
  *   post:
- *     summary: Obter envelopes por repositório ou pasta
- *     description: Esta rota permite obter envelopes com base em um repositório ou pasta especificada.
+ *     summary: Obter envelopes de um repositório
+ *     description:  Busca os envelopes do repositório ou pasta.
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               response:
- *                 type: array
- *                 description: Lista de envelopes com as seguintes propriedades
- *                 items:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       description: ID do envelope
- *                     descricao:
- *                       type: string
- *                       description: Descrição do envelope
- *                     dataHoraCriacao:
- *                       type: string
- *                       format: date-time
- *                       description: Data e hora de criação do envelope
- *                     dataEnvioAgendado:
- *                       type: null
- *                       description: Data de envio agendado (nulo)
- *                     horaEnvioAgendado:
- *                       type: null
- *                       description: Hora de envio agendado (nulo)
- *                     status:
- *                       type: string
- *                       description: Status do envelope
- *                     numeroPaginas:
- *                       type: string
- *                       description: Número de páginas do envelope
- *                     hashSHA256:
- *                       type: string
- *                       description: Hash SHA256 do envelope
- *                     permitirDownload:
- *                       type: string
- *                       description: Indica se o download do envelope é permitido (S ou N)
- *                     permitirResetarExpiracao:
- *                       type: string
- *                       description: Indica se o reset da expiração é permitido (S ou N)
- *                     permitirAlterarExpiracao:
- *                       type: string
- *                       description: Indica se a alteração da expiração é permitida (S ou N)
- *                     permitirRestaurarDaLixeira:
- *                       type: string
- *                       description: Indica se a restauração da lixeira é permitida (S ou N)
- *                     permitirEnvioParaLixeira:
- *                       type: string
- *                       description: Indica se o envio para lixeira é permitido (S ou N)
- *                     permitirDespachos:
- *                       type: string
- *                       description: Indica se os despachos são permitidos (S ou N)
- *                     emAcompanhamento:
- *                       type: string
- *                       description: Indica se o envelope está em acompanhamento (S ou N)
- *                     Usuario:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           description: ID do usuário
- *                         nome:
- *                           type: string
- *                           description: Nome do usuário
- *                     permiteArquivar:
- *                       type: string
- *                       description: Indica se o arquivamento é permitido (S ou N)
- *                     permiteCancelar:
- *                       type: string
- *                       description: Indica se o cancelamento é permitido (S ou N)
- *                     statusDescr:
- *                       type: string
- *                       description: Descrição do status do envelope
+ *               token:
+ *                 type: string
+ *               params:
+ *                 type: object
+ *                 properties:
+ *                   idRepositorio:
+ *                     type: integer
+ *                 required:
+ *                   - idRepositorio
+ *             required:
+ *               - token
+ *               - params
+ *           example:
+ *             token: "56ht9p-Li8k5zHaQ2Dzxzijr..."
+ *             params:
+ *               idRepositorio: 281
  *     responses:
- *       200:
- *         description: Sucesso ao obter envelopes
+ *       '200':
+ *         description: Descrição da resposta de sucesso aqui
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
  *                 response:
- *                   type: array
- *                   description: Lista de envelopes com as propriedades descritas
- *       500:
- *         description: Erro ao chamar a API externa
+ *                   type: string
+ *                   description: Mensagem de sucesso
+ *       '500':
+ *         description: Descrição do erro 500 aqui
  *         content:
  *           application/json:
  *             schema:
@@ -684,7 +681,6 @@ app.post('/api/getEnvelopeData', async (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
- *                   description: Mensagem de erro
  */
 app.post('/api/fetchEnvelopesRepo', async (req, res) => {
   try {
@@ -777,6 +773,62 @@ app.post('/api/sendEnvelope', async (req, res) => {
     res.status(500).json({ error: `Erro ao chamar a API externa: ${error}` });
   }
 });
+
+/**
+ * @swagger
+ * /api/downloadPDF:
+ *   post:
+ *     summary: Fazer download do PDF
+ *     description: Esta rota permite fazer o download de um PDF a partir de um conjunto de parâmetros.
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *               params:
+ *                 type: object
+ *                 properties:
+ *                   hashSHA256:
+ *                     type: string
+ *                     description: Hash SHA256 do PDF a ser baixado
+ *                   incluirDocs:
+ *                     type: string
+ *                     description: Indica se deve incluir documentos (Y) ou não (N) no PDF
+ *                   versaoSemCertificado:
+ *                     type: string
+ *                     description: Versão sem certificado do PDF (opcional)
+ *             required:
+ *               - hashSHA256
+ *               - incluirDocs
+ *           example:
+ *             token: "56ht9p-Li8k5zHaQ2Dzxzijr..."
+ *             params:
+ *               hashSHA256: "125bc811ff75103031ab20c06484924f1b317ae95748481cd790509b24e01d5d"
+ *               incluirDocs: "N"
+ *               versaoSemCertificado: null
+ *     responses:
+ *       '200':
+ *         description: Sucesso ao fazer o download do PDF
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 response:
+ *                   type: string
+ *       '500':
+ *         description: Erro ao chamar a API externa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ */
 
 app.post('/api/downloadPDF', async (req, res) => {
   try {
