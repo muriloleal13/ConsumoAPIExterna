@@ -64,9 +64,9 @@ cd ./frontend
 npm run dev
 ```
 
-O projeto será executado e estará acessível em `http://localhost:3000`, sendo a parte backend e `http://localhost:5173` a parte frontend. Certifique-se de que todas as dependências necessárias tenham sido instaladas previamente.
+O projeto será executado e estará acessível em `http://localhost:3000`, sendo a parte backend e `http://localhost:8000` a parte frontend. Certifique-se de que todas as dependências necessárias tenham sido instaladas previamente.
 
-Uso do Swagger para Documentação da API também já está funcional em `http://localhost:3000/api-docs` porém ainda na fase de desenvolvimento e melhoria.
+Uso do Swagger para Documentação da API também já está funcional em `http://localhost:3000/api-docs`.
 
 ## Autor ✒️
 
