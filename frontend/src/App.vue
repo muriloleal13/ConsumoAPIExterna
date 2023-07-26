@@ -854,9 +854,9 @@ export default {
       return value.trim() === '';
     };
     const canCreateEnvelope = () => {
-      return Boolean(descricao.value ||
-         selectedRepo.value ||
-         documents.value.length ||
+      return Boolean(descricao.value &&
+         selectedRepo.value &&
+         documents.value.length &&
          signatarios.value.length);
     };
     const resetData = () => {
