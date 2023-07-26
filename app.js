@@ -22,9 +22,9 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Consumo de API AVMB',
+      title: 'Consumo de API',
       version: '1.0.0',
-      description: 'Desafio criado para consumir API da AVMB, criar repositórios, envelopes, encaminhar para assinatura e verificar o status dos documentos.',
+      description: 'Projeto criado para consumir API externa, criar repositórios, envelopes, encaminhar para assinatura e verificar o status dos documentos.',
     },
   },
   apis: ['./*.js'], // Caminho para os arquivos com as anotações Swagger

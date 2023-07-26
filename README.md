@@ -59,13 +59,17 @@ npm install
 ```sh
 node app.js
 
-cd ./frontend npm run dev
+cd ./frontend
+
+npm run dev
 ```
 
-O projeto será executado e estará acessível em `http://localhost:3000`. Certifique-se de que todas as dependências necessárias tenham sido instaladas previamente.
+O projeto será executado e estará acessível em `http://localhost:3000`, sendo a parte backend e `http://localhost:5173` a parte frontend. Certifique-se de que todas as dependências necessárias tenham sido instaladas previamente.
+
+Uso do Swagger para Documentação da API também já está funcional em `http://localhost:3000/api-docs` porém ainda na fase de desenvolvimento e melhoria.
 
 ## Autor ✒️
 
-- **Murilo Leal** - [mukkaL13](https://github.com/muriloleal13)
+- **Murilo Leal** - [muriloleal13](https://github.com/muriloleal13)
 
 ---
