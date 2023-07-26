@@ -10,7 +10,7 @@
       <span style="padding: 5px;">{{ successMessage }}</span>
     </div>
 
-    <div v-if="isError.value" class="info-container" style="background-color: rgb(255, 116, 116);">
+    <div v-if="isError" class="info-container" style="background-color: rgb(255, 116, 116);">
       <font-awesome-icon icon="xmark"/>
       <span style="padding: 5px;">{{ errorMessage }}</span>
     </div>

@@ -9,7 +9,7 @@
         <slot></slot>
         <div class="modal-buttons">
           <button @click="onConfirm" class="btn-confirm">
-            <div v-if="isLoading">
+            <div v-if="isLoading" style="display: flex;">
               <div class="loading"></div>
               <span style="padding: 5px;">Carregando...</span>
             </div>
